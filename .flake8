@@ -12,3 +12,4 @@ per-file-ignores =
     gooddata-sdk/gooddata_sdk/__init__.py:F401
     gooddata-pandas/gooddata_pandas/__init__.py:F401
     gooddata-fdw/gooddata_fdw/__init__.py:F401
+    schema-analyzer/schema_analyzer/__init__.py:F401
