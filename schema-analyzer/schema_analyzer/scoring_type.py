@@ -43,7 +43,17 @@ _DEFAULT_TYPE_SCORING = TypeScoringDefinition(
         "SMALLINT": NodeScore.SCORE_NORMAL,
         "SMALLINT UNSIGNED": NodeScore.SCORE_NORMAL,
     },
-    fact_dq={"VARCHAR", "TEXT", "TIME", "TIMESTAMP", "DATE", "DATETIME"},
+    fact_dq={
+        "VARCHAR",
+        "TEXT",
+        "TIME",
+        "TIMESTAMP",
+        "DATE",
+        "DATETIME",
+        "LONGTEXT",
+        "BLOB",
+        "LONGBLOB",
+    },
 )
 
 

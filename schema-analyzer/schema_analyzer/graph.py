@@ -336,7 +336,7 @@ class DatabaseGraph:
         The calculated scores will be added as node attributes into the graph.
 
         :param scorers: scorers to use, defaults to all available, built-in scorers
-        :return: nothing
+        :return: tuple with two dicts; first is mapping node id to fact score, second is mapping node id to dim score
         """
         scoring_visitor = CompositeColumnScoringVisitor(
             [scorer() for scorer in scorers]
@@ -367,6 +367,54 @@ class DatabaseGraph:
 
         nx.set_node_attributes(self.graph, fact_score, "fact_score")
         nx.set_node_attributes(self.graph, dim_score, "dim_score")
+
+        return fact_score, dim_score
+
+    def identify_m_to_n_tables(self):
+        """
+        Identifies M:N tables in the database schema.
+
+        :return: list of M:N table nodes
+        """
+        tables = self.get_tables()
+        g = self.graph
+        result = []
+
+        for table in tables:
+            pk_columns = set()
+            fk_columns = set()
+
+            for in_node, out_node, edge_data in g.out_edges(table, data=True):
+                edge_type = edge_data["edge_type"]
+
+                if edge_type == EdgeTypes.TABLE_PK.value:
+                    # table has primary key; gather all primary key columns
+                    for _, pk_column in g.out_edges(out_node):
+                        pk_columns.add(pk_column)
+                elif edge_type == EdgeTypes.TABLE_COLUMN.value:
+                    # for each column, see if it is referencing column in other table = it is a foreign
+                    # key column
+                    for _, _, column_data in g.out_edges(out_node, data=True):
+                        if column_data["edge_type"] == EdgeTypes.REFERENCE.value:
+                            fk_columns.add(out_node)
+
+                # bail out early if table has more than 2 columns that are foreign keys (it cannot be M:N for sure)
+                if len(fk_columns) > 2:
+                    break
+
+            # M:N tables are identified as follows:
+            #
+            # -  table has two foreign keys and either no primary keys or the PK matches the FKs exactly
+            # OR
+            # -  table has more than two foreign keys and has exactly two of them as primary key columns
+            if len(fk_columns) == 2 or len(pk_columns) == 2:
+                if (
+                    len(pk_columns) == 0
+                    or len(pk_columns.intersection(fk_columns)) == 2
+                ):
+                    result.append(table)
+
+        return result
 
     def accept_visitor(
         self,
