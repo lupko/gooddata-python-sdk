@@ -222,34 +222,18 @@ def _create_header_mapper(response: ExecutionResponse, dim: int) -> Callable[[in
     return _mapper
 
 
-def _row_headers_to_index(
-    headers: Tuple[_DataHeaders, Optional[_DataHeaders]], response: ExecutionResponse
+def _headers_to_index(
+    dim_idx: int, headers: Tuple[_DataHeaders, Optional[_DataHeaders]], response: ExecutionResponse
 ) -> Optional[pandas.Index]:
-    if not len(response.dimensions[0]["headers"]):
+    if len(response.dimensions) <= dim_idx or not len(response.dimensions[dim_idx]["headers"]):
         return None
 
-    mapper = _create_header_mapper(response, dim=0)
+    mapper = _create_header_mapper(response, dim=dim_idx)
 
     return pandas.MultiIndex.from_arrays(
         [
             tuple(mapper(header_idx, header) for header in header_group)
-            for header_idx, header_group in enumerate(headers[0])
-        ]
-    )
-
-
-def _col_headers_to_index(
-    headers: Tuple[_DataHeaders, Optional[_DataHeaders]], response: ExecutionResponse
-) -> Optional[pandas.Index]:
-    if len(response.dimensions) == 1 or not len(response.dimensions[1]["headers"]):
-        return None
-
-    mapper = _create_header_mapper(response, dim=1)
-
-    return pandas.MultiIndex.from_arrays(
-        [
-            tuple(mapper(header_idx, header) for header in header_group)
-            for header_idx, header_group in enumerate(headers[1])
+            for header_idx, header_group in enumerate(headers[dim_idx])
         ]
     )
 
@@ -309,6 +293,6 @@ def convert_result_to_dataframe(response: ExecutionResponse) -> pandas.DataFrame
 
     return pandas.DataFrame(
         data=full_data,
-        index=_row_headers_to_index(full_headers, response),
-        columns=_col_headers_to_index(full_headers, response),
+        index=_headers_to_index(dim_idx=0, headers=full_headers, response=response),
+        columns=_headers_to_index(dim_idx=1, headers=full_headers, response=response),
     )
